@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1140" viewBox="0 0 1080 1140" role="img" aria-label="RetailOS AB 架构落地图">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1d352b"/>
+    </marker>
+    <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c2752c"/>
+    </marker>
+  </defs>
+
+  <rect width="1080" height="1140" fill="#f6f2ea"/>
+
+  <text x="90" y="52" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="25" font-weight="700" fill="#1d352b">RetailOS · AB 架构落地图</text>
+  <text x="90" y="80" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12" fill="#6f6a5e">在保留前端 App + 智能体服务分层的前提下，补齐共享状态、A2UI 契约与 trace，并新增业务事实层。</text>
+
+  <line x1="90" y1="104" x2="138" y2="104" stroke="#1d352b" stroke-width="2"/>
+  <text x="146" y="108" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">原 AB 图分层</text>
+  <line x1="270" y1="104" x2="318" y2="104" stroke="#c2752c" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="326" y="108" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#c2752c">本次加固 / RetailOS 差异化</text>
+
+  <!-- 用户 -->
+  <rect x="430" y="124" width="220" height="46" rx="10" fill="#fffdf8" stroke="#d9d2c4"/>
+  <text x="540" y="152" text-anchor="middle" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="14" font-weight="600" fill="#1d352b">用户</text>
+  <line x1="540" y1="170" x2="540" y2="200" stroke="#1d352b" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- 前端 App -->
+  <rect x="90" y="206" width="900" height="252" rx="14" fill="#fffdf8" stroke="#d9d2c4"/>
+  <text x="110" y="234" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#1d352b">前端 App（Vue 3）</text>
+  <text x="970" y="234" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">对话 / 产物 / 动作 / 状态机</text>
+
+  <rect x="110" y="248" width="420" height="66" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="126" y="274" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">对话面</text>
+  <text x="126" y="296" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">消息列表 + 流式输出 + 停止/重试</text>
+
+  <rect x="550" y="248" width="420" height="66" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="566" y="274" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">产物面</text>
+  <text x="566" y="296" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">表单 / 卡片 / 图表 / 代码 Diff（按需）</text>
+
+  <rect x="110" y="324" width="420" height="66" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="126" y="350" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">动作面</text>
+  <text x="126" y="372" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">工具卡 / 权限卡 / 审批卡 / 确认卡</text>
+
+  <rect x="550" y="324" width="420" height="66" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="566" y="350" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">状态机</text>
+  <text x="566" y="372" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">空闲 → 理解 → 规划 → 执行 → 流式 → 待确认 → 完成 / 失败 / 取消 / 重连</text>
+
+  <rect x="110" y="400" width="860" height="40" rx="9" fill="#fdf4e8" stroke="#c2752c" stroke-dasharray="6 4"/>
+  <text x="126" y="425" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12" font-weight="600" fill="#c2752c">共享状态（本次加固）</text>
+  <text x="300" y="425" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">threadId · traceId · context · pending 确认 · lastRunId，刷新后可恢复待授权状态</text>
+
+  <line x1="540" y1="458" x2="540" y2="492" stroke="#1d352b" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="552" y="481" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" font-weight="600" fill="#1d352b">AG-UI：SSE 事件流 + 共享状态 + seq / traceId</text>
+
+  <!-- 智能体服务 -->
+  <rect x="90" y="496" width="900" height="196" rx="14" fill="#fffdf8" stroke="#d9d2c4"/>
+  <text x="110" y="524" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#1d352b">智能体服务（LLM + 20 个工具）</text>
+
+  <rect x="110" y="540" width="270" height="88" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="126" y="568" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">工具调用</text>
+  <text x="126" y="590" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">服务端白名单 + 参数校验</text>
+  <text x="126" y="608" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">写操作只产出草稿 / 确认卡片</text>
+
+  <rect x="405" y="540" width="270" height="88" rx="9" fill="#fdf4e8" stroke="#c2752c" stroke-dasharray="6 4"/>
+  <text x="421" y="568" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#c2752c">A2UI / JSON Schema v1.0</text>
+  <text x="421" y="590" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">版本号 + 节点校验 + 白名单</text>
+  <text x="421" y="608" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">Vue 渲染器注册表（自建）</text>
+
+  <rect x="700" y="540" width="270" height="88" rx="9" fill="#f4f0e7" stroke="#e2dbcd"/>
+  <text x="716" y="568" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="13" font-weight="600" fill="#1d352b">MCP Apps / iframe</text>
+  <text x="716" y="590" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">代码 Diff / 画布，按需</text>
+  <text x="716" y="608" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#c2752c">当前未接入</text>
+
+  <text x="110" y="668" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">模型只输出结构化 JSON 负载，不生成 HTML / CSS / JS；前端按组件契约渲染。</text>
+
+  <line x1="540" y1="692" x2="540" y2="726" stroke="#c2752c" stroke-width="1.8" stroke-dasharray="7 4" marker-end="url(#arrow-accent)"/>
+  <text x="552" y="715" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" font-weight="600" fill="#c2752c">只读查询 / 写草稿（Agent 不直写表）</text>
+
+  <!-- 业务事实层 -->
+  <rect x="90" y="730" width="900" height="214" rx="14" fill="#fdf8ef" stroke="#c2752c" stroke-width="1.6" stroke-dasharray="8 5"/>
+  <text x="110" y="758" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="15" font-weight="700" fill="#c2752c">业务事实层（RetailOS 差异化 · 新增）</text>
+  <text x="970" y="758" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">权限、事实、事务、审计的唯一裁决方</text>
+
+  <rect x="110" y="774" width="205" height="96" rx="9" fill="#ffffff" stroke="#e6d3bb"/>
+  <text x="124" y="800" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12.5" font-weight="600" fill="#1d352b">NestJS 域服务</text>
+  <text x="124" y="822" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">分析 / 商品 / 库存 / 采购</text>
+  <text x="124" y="840" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">订单 / 门店 / 会员</text>
+
+  <rect x="325" y="774" width="205" height="96" rx="9" fill="#ffffff" stroke="#e6d3bb"/>
+  <text x="339" y="800" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12.5" font-weight="600" fill="#1d352b">RBAC 与数据范围</text>
+  <text x="339" y="822" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">角色权限矩阵（可配置）</text>
+  <text x="339" y="840" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">全国 / 区域 / 门店裁剪</text>
+
+  <rect x="540" y="774" width="205" height="96" rx="9" fill="#ffffff" stroke="#e6d3bb"/>
+  <text x="554" y="800" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12.5" font-weight="600" fill="#1d352b">审批与事务</text>
+  <text x="554" y="822" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">审批链 / 采购验收事务</text>
+  <text x="554" y="840" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">库存流水同步写入</text>
+
+  <rect x="755" y="774" width="205" height="96" rx="9" fill="#ffffff" stroke="#e6d3bb"/>
+  <text x="769" y="800" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="12.5" font-weight="600" fill="#1d352b">MySQL + Migration</text>
+  <text x="769" y="822" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">TypeORM 迁移，禁用同步</text>
+  <text x="769" y="840" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#6f6a5e">审计 / 库存 / 订单持久化</text>
+
+  <text x="110" y="900" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">Agent 工具只编排域服务；写操作由用户在确认卡片确认后，再调用业务接口在事务内完成。</text>
+  <text x="110" y="920" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">架构守卫：npm run check:arch 持续检查 Agent 层是否越界访问数据库。</text>
+
+  <line x1="540" y1="944" x2="540" y2="974" stroke="#1d352b" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+
+  <!-- 可观测与审计 -->
+  <rect x="90" y="976" width="900" height="100" rx="12" fill="#fffdf8" stroke="#d9d2c4"/>
+  <text x="110" y="1004" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="14" font-weight="700" fill="#1d352b">可观测与审计（横向能力）</text>
+  <text x="110" y="1028" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">HTTP 访问日志：requestId + traceId + 耗时 + 操作人</text>
+  <text x="110" y="1050" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#6f6a5e">审计表：trace_id 关联一次操作；Agent 事件：runId + seq + toolCallId 可对齐同一条链路</text>
+  <text x="970" y="1004" text-anchor="end" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="11" fill="#c2752c">本次加固</text>
+
+  <text x="90" y="1120" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="10.5" fill="#8a8478">实线：原 AB 架构分层　·　橙色虚线：本次新增或加固　·　MCP Apps、编排层（Mastra / CrewAI）按需，当前未接入</text>
+</svg>
