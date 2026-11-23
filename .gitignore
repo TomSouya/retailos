@@ -25,3 +25,8 @@ backups/
 *.njsproj
 *.sln
 *.sw?
+
+# 本地环境变量（含密钥）
+server/.env
+.env
+
