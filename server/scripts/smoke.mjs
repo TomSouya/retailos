@@ -111,7 +111,8 @@ const runError = rbacEvents.find((event) => event.type === 'RUN_ERROR')
 assert(Boolean(failedTool), '跨店调用应出现失败工具')
 assert(Boolean(runError), '跨店调用应返回 RUN_ERROR')
 assert(
-  String(runError.message).includes('店长只能访问本店数据'),
+  String(runError.message).includes('所属门店数据') &&
+    String(runError.message).includes('无权'),
   '错误信息应说明门店范围限制',
 )
 results.push(`rbac: ${runError.message}`)

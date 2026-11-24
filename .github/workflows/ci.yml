@@ -146,6 +146,13 @@ jobs:
       - name: Build server
         run: npm run build --prefix server
 
+      - name: Build frontend
+        env:
+          VITE_AGENT_TRANSPORT: sse
+          VITE_AGENT_API_URL: /api/agent/stream
+          VITE_API_BASE_URL: ''
+        run: npm run build
+
       - name: Start server
         run: |
           node server/dist/main.js > server.log 2>&1 &
@@ -160,10 +167,7 @@ jobs:
 
       - name: Start frontend
         run: |
-          VITE_AGENT_TRANSPORT=sse \
-          VITE_AGENT_API_URL=/api/agent/stream \
-          VITE_API_BASE_URL= \
-          npm run dev -- --port 4173 --strictPort > vite.log 2>&1 &
+          npm run preview -- --port 4173 --strictPort > vite.log 2>&1 &
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:4173/ > /dev/null; then
               exit 0
