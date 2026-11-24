@@ -1,0 +1,31 @@
+// 启动期配置校验：生产环境禁止弱 JWT 密钥。
+const WEAK_SECRETS = new Set([
+  'retailos-dev-jwt-secret',
+  'retailos-prod-secret',
+  'ci-jwt-secret',
+  'change-me',
+  'secret',
+])
+
+export function assertSecureConfig() {
+  const secret = String(process.env.JWT_SECRET || '')
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  if (!secret) {
+    if (isProduction) {
+      throw new Error('生产环境必须配置 JWT_SECRET（至少 32 位随机字符串）')
+    }
+    console.warn('[config] 未配置 JWT_SECRET，当前使用开发默认值')
+    return
+  }
+
+  const weak = secret.length < 32 || WEAK_SECRETS.has(secret)
+  if (!weak) return
+
+  if (isProduction) {
+    throw new Error(
+      '生产环境 JWT_SECRET 至少 32 位，且不能使用默认或示例值',
+    )
+  }
+  console.warn('[config] JWT_SECRET 过弱，仅限本地开发使用')
+}

@@ -1,9 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
+import { recordHttpRequest } from './metrics'
 import { runWithRequestContext, safeTraceId } from './request-context'
 
 const SLOW_REQUEST_MS = 800
-const HEALTH_PATHS = new Set(['/api/health'])
+const HEALTH_PATHS = new Set([
+  '/api/health',
+  '/api/health/live',
+  '/api/health/ready',
+  '/api/metrics',
+])
 
 function pickHeader(req: Request, name: string): string {
   const header = req.headers[name]
@@ -32,9 +38,11 @@ export function requestLogger(
   const path = req.originalUrl?.split('?')[0] || req.url
 
   res.on('finish', () => {
+    const durationMs = Date.now() - startedAt
     if (HEALTH_PATHS.has(path)) return
 
-    const durationMs = Date.now() - startedAt
+    recordHttpRequest(req.method, res.statusCode, durationMs)
+
     const actor = (req as any).actor
     const entry = {
       level:

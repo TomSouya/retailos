@@ -238,6 +238,8 @@ export const SALES_ORDER_SEED = [
     amount: 68,
     paymentMethod: '微信支付',
     status: 'refunded',
+    refundedAmount: 68,
+    refundReason: '演示数据：整单退款',
     createdAt: '2026-11-21 10:18',
     items: [
       { sku: 'SKU-1001', name: '有机鲜牛奶 950ml', quantity: 1, unitPrice: 68, amount: 68 },

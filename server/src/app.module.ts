@@ -70,7 +70,9 @@ import { PurchaseOrderSource1700000012000 } from './database/migrations/17000000
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET', 'retailos-dev-jwt-secret'),
-        signOptions: { expiresIn: '8h' },
+        signOptions: {
+          expiresIn: config.get<string>('JWT_EXPIRES_IN', '8h') as any,
+        },
       }),
     }),
     TypeOrmModule.forRootAsync({
