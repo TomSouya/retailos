@@ -204,7 +204,7 @@ PII 字段使用 AES-256-GCM 加密存储（`enc:v1:` 前缀），读取时由 T
 - 迁移：`db:migration-drill` 在临时库完成全量迁移 + 回滚 + 重跑；
 - 回归：主 e2e、phase2、phase3、并发一致性全部通过（rule 模式，无外部模型依赖）。
 
-CI 见 `.github/workflows/ci.yml`：`build-and-smoke` 负责安装、密钥扫描、契约、架构、构建、健康检查与 smoke；`e2e` 负责 MySQL + 后端 + 前端 + 三套浏览器回归。
+CI 见 `.github/workflows/ci.yml`：`build-and-smoke` 负责安装、迁移回滚演练、密钥扫描、契约、架构、构建、健康检查、smoke 与安全自检；`e2e` 负责 MySQL + 后端 + 前端 + 四套浏览器/接口回归。
 
 ## 部署（可选）
 
@@ -268,4 +268,4 @@ docker compose up -d --build
 - 指标、限流与日志文件为单实例内存/本地实现，集中日志与告警需按 `deploy/` 示例接入 Loki / Prometheus；
 - 退款为演示流程，未接入真实支付渠道与对账系统。
 
-生产化前请优先补齐安全基线、自动备份与恢复演练、可观测性与服务层测试。
+上线前仍需完成第三方渗透测试、PII 密钥轮换方案，并把分支保护收紧为要求 PR、禁止管理员绕过。
