@@ -78,6 +78,26 @@ const badLogin = await fetch(`${base}/api/auth/login`, {
 })
 assert(badLogin.status === 401, '错误密码应返回 401')
 
+const clientError = await fetch(`${base}/api/client-errors`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    source: 'window',
+    message: 'smoke 前端错误上报验证',
+    url: 'http://127.0.0.1:4173/smoke',
+    traceId: 'smoke-client-error',
+    happenedAt: new Date().toISOString(),
+  }),
+})
+assert(clientError.status === 202, '前端错误上报应返回 202')
+
+const emptyClientError = await fetch(`${base}/api/client-errors`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ stack: 'missing message' }),
+})
+assert(emptyClientError.status === 400, '缺少错误信息应返回 400')
+
 const ownerToken = await login('owner', 'retailos123')
 const regionalToken = await login('regional', 'retailos123')
 const storeToken = await login('store', 'retailos123')

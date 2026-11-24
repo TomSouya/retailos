@@ -44,3 +44,12 @@ groups:
           severity: warning
         annotations:
           summary: 5 分钟内新增超过 5 个 5xx
+
+      - alert: RetailOSClientErrorSpike
+        expr: increase(retailos_client_errors_total[10m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 10 分钟内前端错误超过 10 条
+          description: 在日志系统检索 event=client_error，按 route 与 traceId 定位页面。

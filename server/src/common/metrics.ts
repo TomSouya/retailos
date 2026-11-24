@@ -1,6 +1,7 @@
 // 轻量进程内指标：供 /api/metrics 以 Prometheus 文本格式暴露。
 // 多实例部署时需改为共享存储或使用 Prometheus 客户端库。
 const counters = new Map<string, number>()
+const clientErrorCounters = new Map<string, number>()
 let durationSecondsSum = 0
 let durationCount = 0
 let error5xx = 0
@@ -16,6 +17,10 @@ export function recordHttpRequest(
   durationSecondsSum += durationMs / 1000
   durationCount += 1
   if (status >= 500) error5xx += 1
+}
+
+export function recordClientError(source: string) {
+  clientErrorCounters.set(source, (clientErrorCounters.get(source) || 0) + 1)
 }
 
 export function renderMetrics(dbUp: boolean) {
@@ -44,6 +49,14 @@ export function renderMetrics(dbUp: boolean) {
     '# TYPE retailos_http_requests_5xx_total counter',
     `retailos_http_requests_5xx_total ${error5xx}`,
   )
+
+  lines.push(
+    '# HELP retailos_client_errors_total 前端上报错误总数',
+    '# TYPE retailos_client_errors_total counter',
+  )
+  for (const [source, count] of clientErrorCounters) {
+    lines.push(`retailos_client_errors_total{source="${source}"} ${count}`)
+  }
 
   lines.push(
     '# HELP retailos_db_up 数据库可用性（1=可用）',

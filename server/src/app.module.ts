@@ -19,6 +19,7 @@ import { ApprovalsController } from './approvals/approvals.controller'
 import { ApprovalsService } from './approvals/approvals.service'
 import { AuditController } from './audit/audit.controller'
 import { AuditService } from './audit/audit.service'
+import { ClientErrorsController } from './client-errors/client-errors.controller'
 import { CatalogController } from './catalog/catalog.controller'
 import { CatalogService } from './catalog/catalog.service'
 import { ProcurementController } from './procurement/procurement.controller'
@@ -154,6 +155,7 @@ import { PurchaseOrderSource1700000012000 } from './database/migrations/17000000
     AgentController,
     ApprovalsController,
     AuditController,
+    ClientErrorsController,
     CatalogController,
     ProcurementController,
     OrdersController,

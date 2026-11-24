@@ -1,0 +1,50 @@
+# Promtail → Loki 采集示例
+# 适用：docker compose 部署，server 日志输出到容器 stdout（单行 JSON）。
+# 挂载：/var/run/docker.sock 与 /var/lib/docker/containers（只读）。
+# 若为宿主机部署，改用 static_configs + __path__ 指向 LOG_FILE。
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/promtail-positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: retailos-server
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+        filters:
+          - name: label
+            values: ['com.docker.compose.project=retailos']
+          - name: label
+            values: ['com.docker.compose.service=server']
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+    pipeline_stages:
+      - docker: {}
+      - json:
+          expressions:
+            level: level
+            event: event
+            requestId: requestId
+            traceId: traceId
+            status: status
+            slow: slow
+            route: route
+      - labels:
+          level:
+          event:
+          slow:
+      # server 日志自带 RFC3339 时间戳
+      - timestamp:
+          source: ts
+          format: RFC3339Nano

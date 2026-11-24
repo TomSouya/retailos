@@ -7,12 +7,14 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import { useAuthStore } from './stores/auth'
+import { installErrorReporting } from './utils/error-reporter'
 
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+installErrorReporting(app, router)
 
 // 任意已登录请求返回 401：清理会话并回到登录页
 window.addEventListener('retailos:unauthorized', () => {

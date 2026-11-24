@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
+import { log, type LogLevel } from './logger'
 import { recordHttpRequest } from './metrics'
 import { runWithRequestContext, safeTraceId } from './request-context'
 
@@ -44,14 +45,13 @@ export function requestLogger(
     recordHttpRequest(req.method, res.statusCode, durationMs)
 
     const actor = (req as any).actor
-    const entry = {
-      level:
-        res.statusCode >= 500
-          ? 'error'
-          : res.statusCode >= 400
-            ? 'warn'
-            : 'info',
-      ts: new Date().toISOString(),
+    const level: LogLevel =
+      res.statusCode >= 500
+        ? 'error'
+        : res.statusCode >= 400
+          ? 'warn'
+          : 'info'
+    log(level, 'http_request', {
       requestId,
       traceId,
       method: req.method,
@@ -60,8 +60,7 @@ export function requestLogger(
       durationMs,
       actor: actor ? `${actor.name}(${actor.key})` : undefined,
       slow: durationMs >= SLOW_REQUEST_MS || undefined,
-    }
-    console.log(JSON.stringify(entry))
+    })
   })
 
   runWithRequestContext({ traceId, requestId }, next)

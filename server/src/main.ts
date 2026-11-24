@@ -5,6 +5,8 @@ import { AppModule } from './app.module'
 import { assertSecureConfig } from './common/config-check'
 import { rateLimit } from './common/rate-limit.middleware'
 import { requestLogger } from './common/request-logger.middleware'
+import { logInfo } from './common/logger'
+import { JsonLogger } from './common/nest-logger'
 
 const DEFAULT_CORS_ORIGINS = [
   'http://127.0.0.1:5173',
@@ -30,7 +32,9 @@ function corsOrigins() {
 
 async function bootstrap() {
   assertSecureConfig()
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create(AppModule, {
+    logger: new JsonLogger(),
+  })
 
   // 安全响应头：API 不返回 HTML，关闭 CSP 避免误伤
   app.use(helmet({ contentSecurityPolicy: false }))
@@ -76,7 +80,12 @@ async function bootstrap() {
   const port = Number(process.env.PORT || 3000)
   const host = process.env.HOST || '127.0.0.1'
   await app.listen(port, host)
-  console.log(`RetailOS server listening on http://${host}:${port}`)
+  logInfo('server_started', {
+    host,
+    port,
+    logLevel: process.env.LOG_LEVEL || 'info',
+    logFile: process.env.LOG_FILE || undefined,
+  })
 }
 
 bootstrap()

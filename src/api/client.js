@@ -15,6 +15,10 @@ export function setCurrentTraceId(traceId) {
   currentTraceId = traceId || ''
 }
 
+export function getCurrentTraceId() {
+  return currentTraceId
+}
+
 function authHeaders(extra = {}) {
   return {
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),

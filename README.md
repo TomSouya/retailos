@@ -159,16 +159,24 @@ e2e 说明：
 | `GET /api/health` | 完整健康检查（含数据库） |
 | `GET /api/health/live` | 存活探针，不依赖数据库 |
 | `GET /api/health/ready` | 就绪探针，数据库不可用时返回 503 |
-| `GET /api/metrics` | Prometheus 文本指标（请求数、耗时、5xx、DB 状态、运行时长） |
+| `GET /api/metrics` | Prometheus 文本指标（请求数、耗时、5xx、前端错误、DB 状态、运行时长） |
 
-访问日志为单行 JSON（含 requestId、traceId、耗时、状态码、慢请求标记），可直接由 Loki / CloudWatch / ELK 采集。限流与指标为单实例内存实现，多实例需替换为 Redis 或 Prometheus 客户端。
+访问日志为单行 JSON（`event=http_request`，含 service、requestId、traceId、耗时、状态码、慢请求标记）；Nest 框架日志为 `event=nest_log`，前端上报为 `event=client_error`，均可直接由 Loki / CloudWatch / ELK 采集。
+
+- `LOG_LEVEL`：`debug` / `info` / `warn` / `error`，默认 `info`；
+- `LOG_FILE`：可选，追加写入文件；`LOG_FILE_MAX_MB`（默认 20）与 `LOG_FILE_KEEP`（默认 5）控制滚动；
+- 前端错误：全局捕获 Vue、`window.onerror` 与 `unhandledrejection`，上报到 `POST /api/client-errors`，同一错误 60 秒去重、每次会话最多 20 条；指标为 `retailos_client_errors_total{source=...}`；
+- 采集示例：`deploy/promtail.example.yml`（Docker stdout → Loki），也可用 Fluent Bit / Vector 采集同样的 JSON 行。
+
+限流与指标为单实例内存实现，多实例需替换为 Redis 或 Prometheus 客户端。
 
 ### 监控与告警
 
 - 抓取配置示例：`deploy/prometheus.example.yml`；
-- 告警规则示例：`deploy/alerts.example.yml`（数据库不可用、5xx 比例、慢请求、5xx 突增）；
+- 告警规则示例：`deploy/alerts.example.yml`（数据库不可用、5xx 比例、慢请求、5xx 突增、前端错误突增）；
 - 探针：`/api/health/live`（存活）、`/api/health/ready`（就绪）；
 - 若设置 `METRICS_TOKEN`，在 Prometheus 中用 `authorization.credentials_file` 提供令牌。
+- 日志：设置 `LOG_FILE` 可直接采集文件，Docker 部署可直接复用 `deploy/promtail.example.yml`。
 
 ### 发布清单
 
@@ -183,7 +191,7 @@ e2e 说明：
 
 ## 质量门禁
 
-- 单元测试：退款计算、分页归一、采购状态机；
+- 单元测试：退款计算、分页归一、采购状态机、前端错误上报校验；
 - 契约：`verify:agent` 8/8；
 - 架构：`check:arch` 通过；
 - 安全：`check:secrets` 无命中，依赖审计无高危漏洞；
@@ -224,8 +232,8 @@ docker compose up -d --build
 ## 已知边界
 
 - 单企业、以门店为数据范围，未实现多租户隔离；
-- 业务测试以 e2e 为主，尚无服务层单元测试；
-- 指标与限流为单实例内存实现，未内置集中日志与告警平台；
+- 服务层单测覆盖退款、分页、采购状态机与前端错误校验，其余业务以 e2e 为主；
+- 指标、限流与日志文件为单实例内存/本地实现，集中日志与告警需按 `deploy/` 示例接入 Loki / Prometheus；
 - 退款为演示流程，未接入真实支付渠道与对账系统。
 
 生产化前请优先补齐安全基线、自动备份与恢复演练、可观测性与服务层测试。
