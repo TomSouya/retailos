@@ -132,8 +132,17 @@ e2e 说明：
 
 定时执行示例：
 
-- Windows 任务计划程序：`powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1`
-- Linux cron：`0 2 * * * mysqldump --single-transaction ... retailos > /backup/retailos-$(date +\%F).sql`（密码用环境变量传递）
+- Windows：`powershell -ExecutionPolicy Bypass -File scripts/register-maintenance-tasks.ps1`
+  - 每日 02:00 备份、06:30 对账、每周日 03:30 审计归档；
+  - 卸载：追加 `-Unregister`；
+  - 日志：`backups/maintenance.log`。
+- Linux cron：
+
+```cron
+0 2 * * *  cd /opt/retailos && npm run db:backup
+30 6 * * * cd /opt/retailos && npm run db:reconcile
+30 3 * * 0 cd /opt/retailos && npm run db:archive-audit -- --days 90
+```
 
 建议每次发布前跑一次 `db:reconcile` 与恢复演练，确认备份可用。
 
