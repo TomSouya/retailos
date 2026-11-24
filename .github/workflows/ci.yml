@@ -57,6 +57,11 @@ jobs:
           npm ci
           npm ci --prefix server
 
+      - name: Dependency audit
+        run: |
+          npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
+          npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org --prefix server
+
       - name: Secret scan
         run: npm run check:secrets
 
@@ -120,6 +125,7 @@ jobs:
       DB_MIGRATIONS_RUN: 'true'
       JWT_SECRET: ci-jwt-secret
       LLM_PROVIDER: rule
+      RATE_LIMIT_MAX: '5000'
       E2E_BASE_URL: http://127.0.0.1:4173
     steps:
       - uses: actions/checkout@v4
@@ -172,6 +178,7 @@ jobs:
           npm run e2e
           npm run e2e:phase2
           npm run e2e:phase3
+          npm run e2e:concurrency
 
       - name: Upload e2e artifacts
         if: failure()

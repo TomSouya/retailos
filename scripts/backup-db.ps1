@@ -1,5 +1,5 @@
 param(
-  [string]$MysqlBin = 'D:\MySQL\Server\bin\mysqldump.exe',
+  [string]$MysqlBin = '',
   [string]$DbHost = '127.0.0.1',
   [int]$Port = 3306,
   [string]$User = 'retailos',
@@ -10,6 +10,15 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $MysqlBin) {
+  $command = Get-Command mysqldump -ErrorAction SilentlyContinue
+  if ($command) {
+    $MysqlBin = $command.Source
+  } else {
+    $MysqlBin = 'D:\MySQL\Server\bin\mysqldump.exe'
+  }
+}
 
 if (-not (Test-Path $MysqlBin)) {
   throw "找不到 mysqldump：$MysqlBin，请通过 -MysqlBin 指定路径"

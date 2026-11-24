@@ -91,6 +91,11 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `LLM_PROVIDER` | `rule` / `stub` / OpenAI 兼容（`deepseek`、`modelscope` 等） |
 | `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` | 真实模型配置，仅非 rule 模式需要 |
 | `HOST` / `PORT` | 监听地址与端口，默认 `127.0.0.1:3000` |
+| `CORS_ORIGINS` | 允许的前端来源，逗号分隔；未配置时使用本地默认列表 |
+| `TRUST_PROXY` | 位于 Nginx 等代理后设为 `1`，用于取真实客户端 IP |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | 全局限流窗口与上限，默认 60000ms / 1200 次 |
+| `JWT_EXPIRES_IN` | 令牌有效期，默认 `8h` |
+| `METRICS_TOKEN` | 设置后访问 `/api/metrics` 需携带 `Authorization: Bearer <token>` |
 
 ## 常用脚本
 
@@ -103,6 +108,7 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `npm run e2e` | 主 e2e：登录、驾驶舱、Agent、审批、审计、移动端 |
 | `npm run e2e:phase2` | 业务 e2e：商品、采购、库存、退款、分页搜索 |
 | `npm run e2e:phase3` | 深化 e2e：导出、系统账号、Agent 确认卡 |
+| `npm run e2e:concurrency` | 并发一致性：验收只入库一次、退款只成功一次 |
 | `npm run verify:agent` | A2UI / AG-UI 契约校验（8 项） |
 | `npm run check:arch` | 架构守卫：Agent 层禁止直连数据库 |
 | `npm run check:secrets` | 扫描已跟踪文件中的密钥与私钥 |
@@ -114,18 +120,45 @@ e2e 说明：
 - 指定端口：`$env:E2E_BASE_URL='http://127.0.0.1:4173'; npm run e2e`；
 - 浏览器默认自动探测 Chrome/Edge，也可用 `CHROME_PATH` 指定。
 
+## 数据运维
+
+| 命令 | 说明 |
+| --- | --- |
+| `npm run db:backup` | mysqldump 备份到 `backups/`，默认保留 14 天（读取 `DB_PASSWORD`） |
+| `npm run db:restore -- -File backups/xxx.sql -Yes` | 从备份恢复，覆盖当前库 |
+| `npm run db:archive-audit -- --days 90 --dry-run` | 导出 N 天前审计记录为 JSONL；去掉 `--dry-run` 后删除 |
+| `npm run db:reconcile` | 只读对账：退款金额与状态、负库存、采购时间戳、库存流水 |
+
+定时执行示例：
+
+- Windows 任务计划程序：`powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1`
+- Linux cron：`0 2 * * * mysqldump --single-transaction ... retailos > /backup/retailos-$(date +\%F).sql`（密码用环境变量传递）
+
+建议每次发布前跑一次 `db:reconcile` 与恢复演练，确认备份可用。
+
 ## 经营助手
 
 - **rule（默认）**：规则场景，覆盖销售/库存/商品/采购单查询、补货申请、采购单提交与审批、退款申请；写操作先出确认卡。
 - **stub**：本地确定性模型，用于自动化测试。
 - **真实模型**：任何 OpenAI 兼容接口；只输出 JSON Schema 组件描述，服务端白名单校验后渲染，禁止直出 HTML/CSS。
 
+## 可观测性
+
+| 端点 | 用途 |
+| --- | --- |
+| `GET /api/health` | 完整健康检查（含数据库） |
+| `GET /api/health/live` | 存活探针，不依赖数据库 |
+| `GET /api/health/ready` | 就绪探针，数据库不可用时返回 503 |
+| `GET /api/metrics` | Prometheus 文本指标（请求数、耗时、5xx、DB 状态、运行时长） |
+
+访问日志为单行 JSON（含 requestId、traceId、耗时、状态码、慢请求标记），可直接由 Loki / CloudWatch / ELK 采集。限流与指标为单实例内存实现，多实例需替换为 Redis 或 Prometheus 客户端。
+
 ## 质量门禁
 
 - 契约：`verify:agent` 8/8；
 - 架构：`check:arch` 通过；
-- 安全：`check:secrets` 无命中；
-- 回归：主 e2e、phase2、phase3 全通过（rule 模式，无外部模型依赖）。
+- 安全：`check:secrets` 无命中，依赖审计无高危漏洞；
+- 回归：主 e2e、phase2、phase3、并发一致性全部通过（rule 模式，无外部模型依赖）。
 
 CI 见 `.github/workflows/ci.yml`：`build-and-smoke` 负责安装、密钥扫描、契约、架构、构建、健康检查与 smoke；`e2e` 负责 MySQL + 后端 + 前端 + 三套浏览器回归。
 
@@ -143,7 +176,7 @@ docker compose up -d --build
 
 - 单企业、以门店为数据范围，未实现多租户隔离；
 - 业务测试以 e2e 为主，尚无服务层单元测试；
-- 未内置集中日志、指标监控、接口限流与审计归档策略；
+- 指标与限流为单实例内存实现，未内置集中日志与告警平台；
 - 退款为演示流程，未接入真实支付渠道与对账系统。
 
 生产化前请优先补齐安全基线、自动备份与恢复演练、可观测性与服务层测试。
