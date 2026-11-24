@@ -111,7 +111,13 @@ export function authorizeTool(params: {
   if (input.storeId) {
     const scopeType = scopeTypeOf(actor.key)
     if (scopeType === 'store' && actor.storeId !== input.storeId) {
-      return { allowed: false, reason: '当前角色只能访问所属门店数据' }
+      const ownStore = STORES.find((item) => item.id === actor.storeId)
+      return {
+        allowed: false,
+        reason: `当前角色只能访问所属门店数据${
+          ownStore ? `（${ownStore.name}）` : ''
+        }，无权查看其他门店`,
+      }
     }
 
     if (scopeType === 'region') {

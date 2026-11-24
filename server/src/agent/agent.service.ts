@@ -75,6 +75,77 @@ export class AgentService {
       }
     }
 
+    const purchaseOrderMatch = text.match(/PO-\d{8}-\d+/i)
+    if (
+      purchaseOrderMatch &&
+      /采购单/.test(text) &&
+      /提交|发起|审批/.test(text)
+    ) {
+      const action = /审批/.test(text) ? 'approve' : 'submit'
+      const input = {
+        orderId: purchaseOrderMatch[0].toUpperCase(),
+        action,
+      }
+      const output = await this.agentTools.run(
+        actor,
+        TOOL.PREPARE_PURCHASE_ORDER_ACTION,
+        input,
+      )
+      const verb = action === 'approve' ? '审批通过' : '提交'
+
+      return {
+        plan: `我会先校验 ${input.orderId} 的状态与你的权限，再生成${verb}确认卡片。`,
+        tools: [
+          {
+            name: TOOL.PREPARE_PURCHASE_ORDER_ACTION,
+            label: TOOL_LABELS[TOOL.PREPARE_PURCHASE_ORDER_ACTION],
+            input,
+            duration: 520,
+          },
+        ],
+        reply: `${input.orderId} 已准备${verb}，请在确认卡片中确认后执行。`,
+        ui: {
+          type: 'card',
+          props: {
+            title:
+              action === 'approve' ? '采购单审批确认' : '采购单提交确认',
+            subtitle: `${input.orderId} · ${output.supplierName || ''}`,
+          },
+          children: [
+            {
+              type: 'metricGrid',
+              props: {
+                items: [
+                  { label: '采购单', value: input.orderId },
+                  { label: '门店', value: output.storeName || '—' },
+                  {
+                    label: '采购金额',
+                    value: Number(output.totalAmount || 0),
+                    format: 'currency',
+                  },
+                  {
+                    label: '商品数',
+                    value: Number(output.itemCount || 0),
+                    format: 'number',
+                  },
+                ],
+              },
+            },
+            {
+              type: 'callout',
+              props: {
+                tone: 'info',
+                title: '需要确认',
+                text: '确认后才会真正提交或审批，取消不会修改任何数据。',
+              },
+            },
+          ],
+        },
+        confirmation:
+          this.buildPurchaseActionConfirmation(output) || undefined,
+      }
+    }
+
     const wantsSalesReport =
       /销售额|销售情况|销售数据|销售业绩|营业额|客单价|环比|趋势|排行|经营概览|毛利|周转|售罄/.test(
         text,
@@ -879,6 +950,13 @@ export class AgentService {
       emit({
         type: 'APPROVAL_REQUIRED',
         approval: scenario.approval,
+      })
+    }
+
+    if (scenario.confirmation) {
+      emit({
+        type: 'CONFIRMATION_REQUIRED',
+        confirmation: scenario.confirmation,
       })
     }
 

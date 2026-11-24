@@ -141,6 +141,7 @@ export interface Scenario {
   reply: string
   ui: UiNode
   approval?: Approval
+  confirmation?: Confirmation
 }
 
 export interface SalesSummary {
