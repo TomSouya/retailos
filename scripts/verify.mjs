@@ -4,11 +4,12 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import puppeteer from 'puppeteer-core'
+import { resolveChromePath } from './resolve-chrome.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, '..')
 const shots = path.join(root, 'screenshots')
-const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+const chrome = resolveChromePath()
 const base = process.env.E2E_BASE_URL || 'http://127.0.0.1:4174'
 
 const consoleErrors = []

@@ -92,3 +92,93 @@ jobs:
         with:
           name: server-log
           path: server.log
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: retailos
+          MYSQL_USER: retailos
+          MYSQL_PASSWORD: retailos_dev
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: retailos
+      DB_PASSWORD: retailos_dev
+      DB_NAME: retailos
+      DB_MIGRATIONS_RUN: 'true'
+      JWT_SECRET: ci-jwt-secret
+      LLM_PROVIDER: rule
+      E2E_BASE_URL: http://127.0.0.1:4173
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix server
+
+      - name: Build server
+        run: npm run build --prefix server
+
+      - name: Start server
+        run: |
+          node server/dist/main.js > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat server.log
+          exit 1
+
+      - name: Start frontend
+        run: |
+          VITE_AGENT_TRANSPORT=sse \
+          VITE_AGENT_API_URL=/api/agent/stream \
+          VITE_API_BASE_URL= \
+          npm run dev -- --port 4173 --strictPort > vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat vite.log
+          exit 1
+
+      - name: Run e2e
+        run: |
+          npm run e2e
+          npm run e2e:phase2
+          npm run e2e:phase3
+
+      - name: Upload e2e artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts
+          path: |
+            server.log
+            vite.log
+            screenshots

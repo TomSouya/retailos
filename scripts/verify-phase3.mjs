@@ -1,9 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import puppeteer from 'puppeteer-core'
+import { resolveChromePath } from './resolve-chrome.mjs'
 
 const base = process.env.E2E_BASE_URL || 'http://127.0.0.1:4175'
-const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+const chrome = resolveChromePath()
 const shots = path.resolve('screenshots')
 const downloads = path.join(shots, 'phase3-downloads')
 fs.mkdirSync(downloads, { recursive: true })
