@@ -2,12 +2,21 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       mysql:
         image: mysql:8.0
@@ -47,6 +56,15 @@ jobs:
         run: |
           npm ci
           npm ci --prefix server
+
+      - name: Secret scan
+        run: npm run check:secrets
+
+      - name: Agent contracts
+        run: npm run verify:agent
+
+      - name: Architecture guard
+        run: npm run check:arch
 
       - name: Build
         run: |
