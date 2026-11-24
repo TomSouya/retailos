@@ -193,6 +193,26 @@ CI 见 `.github/workflows/ci.yml`：`build-and-smoke` 负责安装、密钥扫�
 
 ## 部署（可选）
 
+### HTTPS 与安全
+
+- 反向代理示例：`deploy/nginx-tls.example.conf`（HTTP→HTTPS、TLS 1.2/1.3、HSTS、SSE 关闭缓冲）；
+- 证书可用 Let's Encrypt：
+
+```bash
+certbot certonly --nginx -d retail.example.com
+```
+
+- 后端环境变量：
+  - `TRUST_PROXY=1`（取真实客户端 IP）；
+  - `CORS_ORIGINS=https://retail.example.com`（多个用逗号分隔）；
+  - 生产 `JWT_SECRET` 至少 32 位随机字符串。
+- 示例中 HSTS 默认注释，确认证书与 HTTPS 正常后再开启。
+- 验证：
+  - `curl -I https://retail.example.com/api/health/ready`；
+  - 检查证书链、HSTS、CORS 与 SSE 长连接。
+
+### 容器
+
 ```bash
 docker compose up -d --build
 ```
