@@ -1,6 +1,6 @@
 // 启动期配置校验：生产环境禁止弱 JWT 密钥。
 import { logWarn } from './logger'
-import { assertPiiKey } from './pii'
+import { assertPiiKeys } from './pii'
 
 const WEAK_SECRETS = new Set([
   'retailos-dev-jwt-secret',
@@ -25,7 +25,7 @@ export function assertSecureConfig() {
       message: '未配置 PII_ENCRYPTION_KEY，使用开发默认密钥',
     })
   } else {
-    assertPiiKey()
+    assertPiiKeys()
   }
 
   if (!secret) {

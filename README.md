@@ -89,6 +89,7 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `DB_MIGRATIONS_RUN` | 启动时自动迁移，默认 `true` |
 | `JWT_SECRET` | 令牌密钥，生产必须替换为随机长字符串 |
 | `PII_ENCRYPTION_KEY` | 会员手机号、供应商联系方式加密密钥；32 字节 hex 或 base64，生产必填 |
+| `PII_ENCRYPTION_OLD_KEYS` | 密钥轮换期间的旧密钥，逗号分隔；`dev` 哨兵仅限本地 |
 | `LLM_PROVIDER` | `rule` / `stub` / OpenAI 兼容（`deepseek`、`modelscope` 等） |
 | `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` | 真实模型配置，仅非 rule 模式需要 |
 | `HOST` / `PORT` | 监听地址与端口，默认 `127.0.0.1:3000` |
@@ -132,9 +133,16 @@ e2e 说明：
 | `npm run db:archive-audit -- --days 90 --dry-run` | 导出 N 天前审计记录为 JSONL；去掉 `--dry-run` 后删除 |
 | `npm run db:reconcile` | 只读对账：退款金额与状态、负库存、采购时间戳、库存流水 |
 | `npm --prefix server run pii:encrypt` | 加密存量会员手机号与供应商联系方式，支持 `-- --dry-run` |
+| `npm --prefix server run pii:rotate -- --yes` | 用当前密钥重加密全部 PII，轮换旧密钥时使用 |
 | `npm --prefix server run db:migration-drill` | 在临时库执行全量迁移、回滚 2 个版本并重跑，需 CREATE/DROP DATABASE 权限 |
 
 PII 字段使用 AES-256-GCM 加密存储（`enc:v1:` 前缀），读取时由 TypeORM transformer 透明解密。店长只能看到脱敏后的会员手机号与供应商联系方式；老板、区域经理与仓库管理员按权限查看完整值。
+
+密钥轮换步骤：
+
+1. 新密钥写入 `PII_ENCRYPTION_KEY`，旧密钥写入 `PII_ENCRYPTION_OLD_KEYS`，重启服务确认读取正常；
+2. `npm --prefix server run pii:rotate -- --yes` 用新密钥重加密存量数据；
+3. 确认无 `pii_decrypt_failed` 日志后移除 `PII_ENCRYPTION_OLD_KEYS` 并重启。
 
 定时执行示例：
 
@@ -262,7 +270,7 @@ docker compose up -d --build
 
 - 单企业、以门店为数据范围，未实现多租户隔离；
 - PII 加密覆盖会员手机号与供应商联系人/电话；会员姓名、订单会员名与审计操作人仍为明文，用于搜索与审计追溯；
-- 更换 `PII_ENCRYPTION_KEY` 需先用旧密钥解密并重加密存量数据，当前未内置多密钥轮换；
+- 更换 `PII_ENCRYPTION_KEY` 时需短暂保留 `PII_ENCRYPTION_OLD_KEYS` 并执行 `pii:rotate`，完成后再移除旧密钥；
 - 迁移回滚演练需要临时库的 CREATE/DROP 权限；`PiiEncryption` 的 down 为安全空回滚，生产回退请使用备份恢复；
 - `security:check` 是可重复的安全回归探针，不替代第三方渗透测试；
 - 指标、限流与日志文件为单实例内存/本地实现，集中日志与告警需按 `deploy/` 示例接入 Loki / Prometheus；

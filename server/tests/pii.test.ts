@@ -1,19 +1,22 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  assertPiiKeys,
   decryptPii,
   encryptPii,
   isEncryptedPii,
   maskName,
   maskPhone,
   piiTransformer,
+  rotatePiiValue,
 } from '../src/common/pii'
 
 const KEY_A = 'a'.repeat(64)
 const KEY_B = 'b'.repeat(64)
 
 describe('PII 加密与脱敏', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     process.env.PII_ENCRYPTION_KEY = KEY_A
+    delete process.env.PII_ENCRYPTION_OLD_KEYS
   })
 
   it('AES-GCM 往返一致且每次密文不同', () => {
@@ -43,7 +46,25 @@ describe('PII 加密与脱敏', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(decryptPii(encrypted)).toBe('[解密失败]')
     errorSpy.mockRestore()
-    process.env.PII_ENCRYPTION_KEY = KEY_A
+  })
+
+  it('旧密钥可解密，轮换后仅新密钥可解密', () => {
+    const encrypted = encryptPii('13800138000')
+    process.env.PII_ENCRYPTION_KEY = KEY_B
+    process.env.PII_ENCRYPTION_OLD_KEYS = KEY_A
+
+    expect(decryptPii(encrypted)).toBe('13800138000')
+    const rotated = rotatePiiValue(encrypted)
+    expect(rotated).not.toBe(encrypted)
+    expect(decryptPii(rotated)).toBe('13800138000')
+
+    delete process.env.PII_ENCRYPTION_OLD_KEYS
+    expect(decryptPii(rotated)).toBe('13800138000')
+  })
+
+  it('旧密钥格式非法时启动校验失败', () => {
+    process.env.PII_ENCRYPTION_OLD_KEYS = 'not-a-valid-key'
+    expect(() => assertPiiKeys()).toThrow()
   })
 
   it('手机号与姓名脱敏', () => {

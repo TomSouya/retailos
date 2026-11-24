@@ -12,6 +12,7 @@
     "archive:audit": "ts-node scripts/archive-audit.ts",
     "reconcile": "ts-node scripts/reconcile.ts",
     "pii:encrypt": "ts-node scripts/encrypt-pii.ts",
+    "pii:rotate": "ts-node scripts/rotate-pii.ts",
     "db:migration-drill": "ts-node scripts/migration-drill.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
