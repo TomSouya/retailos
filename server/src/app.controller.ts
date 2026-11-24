@@ -20,7 +20,7 @@ export class AppController {
   private baseInfo() {
     return {
       service: 'retailos-server',
-      version: process.env.npm_package_version || '0.1.0',
+      version: process.env.npm_package_version || '1.0.0',
       uptimeSec: Math.round(process.uptime()),
       time: new Date().toISOString(),
     }
