@@ -201,7 +201,16 @@ PII 字段使用 AES-256-GCM 加密存储（`enc:v1:` 前缀），读取时由 T
 5. 确认 CI 全绿后打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`；
 6. 部署后检查 `/api/health/ready` 与 `/api/metrics`。
 
-`master` 已启用分支保护，要求 `build-and-smoke` 与 `e2e` 两个检查通过。
+`master` 已启用分支保护，要求 `build-and-smoke` 与 `e2e` 两个检查通过。需要收紧为「必须 PR、管理员不可绕过」时：
+
+```powershell
+npm run security:protect-branch -- --dry-run
+$env:GITHUB_TOKEN='fine-grained-token'
+npm run security:protect-branch
+```
+
+- Token 需要 `Administration: write` 权限；
+- 收紧后 `master` 只能通过 PR 合入，管理员也不能直接推送；请先确认团队已采用 PR 流程。
 
 ## 质量门禁
 

@@ -22,7 +22,8 @@
     "verify:agent": "node scripts/verify-agent-contracts.mjs",
     "check:arch": "node scripts/check-architecture.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "security:check": "node scripts/security-check.mjs"
+    "security:check": "node scripts/security-check.mjs",
+    "security:protect-branch": "node scripts/set-branch-protection.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
