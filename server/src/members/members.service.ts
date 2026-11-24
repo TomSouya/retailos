@@ -13,7 +13,8 @@ import { SalesOrderEntity } from '../database/entities/sales-order.entity'
 import { STORES } from '../domain/data'
 import { MEMBER_SEED } from '../domain/profile-data'
 import { scopedStores } from '../domain/rbac'
-import { ensurePermission } from '../domain/permissions'
+import { ensurePermission, hasPermission } from '../domain/permissions'
+import { maskPhone } from '../common/pii'
 import { Actor } from '../domain/types'
 
 const LEVELS = ['diamond', 'gold', 'silver', 'basic']
@@ -76,6 +77,10 @@ export class MembersService implements OnModuleInit {
 
   private storeName(storeId: string) {
     return STORES.find((store) => store.id === storeId)?.name || '—'
+  }
+
+  private phoneFor(actor: Actor, phone: string) {
+    return hasPermission(actor, 'members.pii') ? phone : maskPhone(phone)
   }
 
   private metricsFrom(orders: SalesOrderEntity[]) {
@@ -180,7 +185,7 @@ export class MembersService implements OnModuleInit {
         return {
           id: row.id,
           name: row.name,
-          phone: row.phone,
+          phone: this.phoneFor(actor, row.phone),
           level: row.level,
           storeId: row.storeId,
           storeName: this.storeName(row.storeId),
@@ -302,7 +307,7 @@ export class MembersService implements OnModuleInit {
       member: {
         id: member.id,
         name: member.name,
-        phone: member.phone,
+        phone: this.phoneFor(actor, member.phone),
         level: member.level,
         storeId: member.storeId,
         storeName: this.storeName(member.storeId),
@@ -365,12 +370,13 @@ export class MembersService implements OnModuleInit {
       throw new ForbiddenException('当前角色无权在该门店新增会员')
     }
 
-    const duplicate = await this.membersRepository.findOne({
-      where: { phone },
+    const rows = await this.membersRepository.find({
+      select: { id: true, phone: true },
     })
-    if (duplicate) throw new BadRequestException('该手机号已建档')
+    if (rows.some((row) => row.phone === phone)) {
+      throw new BadRequestException('该手机号已建档')
+    }
 
-    const rows = await this.membersRepository.find({ select: { id: true } })
     const max = rows.reduce((current, row) => {
       const matched = /^MB-(\d+)$/.exec(row.id)
       return matched ? Math.max(current, Number(matched[1])) : current
@@ -403,7 +409,7 @@ export class MembersService implements OnModuleInit {
     return {
       id: entity.id,
       name: entity.name,
-      phone: entity.phone,
+      phone: this.phoneFor(actor, entity.phone),
       level: entity.level,
       storeId: entity.storeId,
       storeName: this.storeName(entity.storeId),

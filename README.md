@@ -88,6 +88,7 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `DB_SYNCHRONIZE` | 必须为 `false`，结构变更走 migration |
 | `DB_MIGRATIONS_RUN` | 启动时自动迁移，默认 `true` |
 | `JWT_SECRET` | 令牌密钥，生产必须替换为随机长字符串 |
+| `PII_ENCRYPTION_KEY` | 会员手机号、供应商联系方式加密密钥；32 字节 hex 或 base64，生产必填 |
 | `LLM_PROVIDER` | `rule` / `stub` / OpenAI 兼容（`deepseek`、`modelscope` 等） |
 | `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` | 真实模型配置，仅非 rule 模式需要 |
 | `HOST` / `PORT` | 监听地址与端口，默认 `127.0.0.1:3000` |
@@ -109,10 +110,11 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `npm run e2e:phase2` | 业务 e2e：商品、采购、库存、退款、分页搜索 |
 | `npm run e2e:phase3` | 深化 e2e：导出、系统账号、Agent 确认卡 |
 | `npm run e2e:concurrency` | 并发一致性：验收只入库一次、退款只成功一次 |
-| `npm run test:server` | 服务层单元测试（退款计算、分页归一、采购状态机） |
+| `npm run test:server` | 服务层单元测试（退款、分页、采购状态机、PII、CSV、错误上报） |
 | `npm run verify:agent` | A2UI / AG-UI 契约校验（8 项） |
 | `npm run check:arch` | 架构守卫：Agent 层禁止直连数据库 |
 | `npm run check:secrets` | 扫描已跟踪文件中的密钥与私钥 |
+| `npm run security:check` | 安全回归：安全头、CORS、JWT 篡改、越权、SQL 注入、PII 脱敏 |
 
 e2e 说明：
 
@@ -129,6 +131,10 @@ e2e 说明：
 | `npm run db:restore -- -File backups/xxx.sql -Yes` | 从备份恢复，覆盖当前库 |
 | `npm run db:archive-audit -- --days 90 --dry-run` | 导出 N 天前审计记录为 JSONL；去掉 `--dry-run` 后删除 |
 | `npm run db:reconcile` | 只读对账：退款金额与状态、负库存、采购时间戳、库存流水 |
+| `npm --prefix server run pii:encrypt` | 加密存量会员手机号与供应商联系方式，支持 `-- --dry-run` |
+| `npm --prefix server run db:migration-drill` | 在临时库执行全量迁移、回滚 2 个版本并重跑，需 CREATE/DROP DATABASE 权限 |
+
+PII 字段使用 AES-256-GCM 加密存储（`enc:v1:` 前缀），读取时由 TypeORM transformer 透明解密。店长只能看到脱敏后的会员手机号与供应商联系方式；老板、区域经理与仓库管理员按权限查看完整值。
 
 定时执行示例：
 
@@ -191,10 +197,11 @@ e2e 说明：
 
 ## 质量门禁
 
-- 单元测试：退款计算、分页归一、采购状态机、前端错误上报校验；
+- 单元测试：退款计算、分页归一、采购状态机、PII 加解密、CSV 注入防护、前端错误上报校验；
 - 契约：`verify:agent` 8/8；
 - 架构：`check:arch` 通过；
-- 安全：`check:secrets` 无命中，依赖审计无高危漏洞；
+- 安全：`check:secrets` 无命中，依赖审计无高危漏洞，`security:check` 14 项通过；
+- 迁移：`db:migration-drill` 在临时库完成全量迁移 + 回滚 + 重跑；
 - 回归：主 e2e、phase2、phase3、并发一致性全部通过（rule 模式，无外部模型依赖）。
 
 CI 见 `.github/workflows/ci.yml`：`build-and-smoke` 负责安装、密钥扫描、契约、架构、构建、健康检查与 smoke；`e2e` 负责 MySQL + 后端 + 前端 + 三套浏览器回归。
@@ -219,6 +226,28 @@ certbot certonly --nginx -d retail.example.com
   - `curl -I https://retail.example.com/api/health/ready`；
   - 检查证书链、HSTS、CORS 与 SSE 长连接。
 
+### 发布流水线（staging / production）
+
+- 工作流：`.github/workflows/deploy.yml`，手动选择环境与 ref，勾选 `rollback` 可回滚上一版；
+- 服务器目录：
+
+```text
+/opt/retailos/
+├─ releases/<git-sha>/     # 每次发布独立目录
+├─ current -> releases/... # 当前版本软链
+├─ shared/.env             # 生产环境变量（含 PII_ENCRYPTION_KEY）
+└─ previous-release        # 上一成功版本，供回滚
+```
+
+- 首次准备：
+  - 创建 `retailos` 用户与上述目录，`shared/.env` 权限设为 600；
+  - 安装 `deploy/retailos.service` 到 `/etc/systemd/system/` 并 `systemctl enable retailos`；
+  - Nginx 静态目录指向 `/opt/retailos/current/dist`，`/api` 反代到 `127.0.0.1:3000`。
+- GitHub Secrets：`DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`，可选 `DEPLOY_PORT`、`DEPLOY_PATH`、`DEPLOY_KNOWN_HOSTS`；
+- 服务器需安装 Node.js 22 与 npm，部署用户需有 `sudo systemctl restart retailos` 权限（建议配置 NOPASSWD）；
+- `deploy/deploy.sh` 依次执行解压、`npm ci --omit=dev`、迁移、切换软链、重启与健康检查；健康检查失败会自动切回上一版；
+- `deploy/rollback.sh` 用于手动回滚，同样带健康检查。
+
 ### 容器
 
 ```bash
@@ -226,13 +255,16 @@ docker compose up -d --build
 ```
 
 - 前端由 nginx 托管并反向代理 `/api`，SSE 已关闭缓冲；
-- 生产必须替换 `DB_PASSWORD` 与 `JWT_SECRET`，并在外层配置 HTTPS；
+- 生产必须替换 `DB_PASSWORD`、`JWT_SECRET` 与 `PII_ENCRYPTION_KEY`，并在外层配置 HTTPS；
 - 仅需容器时也可分别构建 `Dockerfile` 与 `server/Dockerfile`。
 
 ## 已知边界
 
 - 单企业、以门店为数据范围，未实现多租户隔离；
-- 服务层单测覆盖退款、分页、采购状态机与前端错误校验，其余业务以 e2e 为主；
+- PII 加密覆盖会员手机号与供应商联系人/电话；会员姓名、订单会员名与审计操作人仍为明文，用于搜索与审计追溯；
+- 更换 `PII_ENCRYPTION_KEY` 需先用旧密钥解密并重加密存量数据，当前未内置多密钥轮换；
+- 迁移回滚演练需要临时库的 CREATE/DROP 权限；`PiiEncryption` 的 down 为安全空回滚，生产回退请使用备份恢复；
+- `security:check` 是可重复的安全回归探针，不替代第三方渗透测试；
 - 指标、限流与日志文件为单实例内存/本地实现，集中日志与告警需按 `deploy/` 示例接入 Loki / Prometheus；
 - 退款为演示流程，未接入真实支付渠道与对账系统。
 

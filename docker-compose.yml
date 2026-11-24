@@ -17,6 +17,7 @@ services:
       DB_SYNCHRONIZE: "false"
       DB_MIGRATIONS_RUN: "true"
       JWT_SECRET: ${JWT_SECRET:-retailos-prod-secret}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-rule}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_MODEL: ${LLM_MODEL:-}

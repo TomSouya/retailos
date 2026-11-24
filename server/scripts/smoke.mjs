@@ -438,6 +438,45 @@ assert(
   '会员汇总与列表不一致',
 )
 
+const smokeMemberPhone = `139${String(Date.now()).slice(-8)}`
+const createMemberResponse = await fetch(`${base}/api/members`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${ownerToken}`,
+  },
+  body: JSON.stringify({
+    name: 'smoke 会员',
+    phone: smokeMemberPhone,
+    level: 'basic',
+    storeId: 'S001',
+  }),
+})
+assert(createMemberResponse.ok, `新增会员失败：${createMemberResponse.status}`)
+const createdMember = await createMemberResponse.json()
+assert(
+  createdMember.phone === smokeMemberPhone,
+  '老板应看到完整会员手机号',
+)
+
+const duplicateMemberResponse = await fetch(`${base}/api/members`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${ownerToken}`,
+  },
+  body: JSON.stringify({
+    name: 'smoke 会员重复',
+    phone: smokeMemberPhone,
+    level: 'basic',
+    storeId: 'S001',
+  }),
+})
+assert(
+  duplicateMemberResponse.status === 400,
+  '重复手机号应返回 400',
+)
+
 const regionalStoresResponse = await fetch(`${base}/api/stores`, {
   headers: { Authorization: `Bearer ${regionalToken}` },
 })

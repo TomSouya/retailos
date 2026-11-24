@@ -1,5 +1,6 @@
 // 启动期配置校验：生产环境禁止弱 JWT 密钥。
 import { logWarn } from './logger'
+import { assertPiiKey } from './pii'
 
 const WEAK_SECRETS = new Set([
   'retailos-dev-jwt-secret',
@@ -12,6 +13,20 @@ const WEAK_SECRETS = new Set([
 export function assertSecureConfig() {
   const secret = String(process.env.JWT_SECRET || '')
   const isProduction = process.env.NODE_ENV === 'production'
+
+  const piiKey = String(process.env.PII_ENCRYPTION_KEY || '').trim()
+  if (!piiKey) {
+    if (isProduction) {
+      throw new Error(
+        '生产环境必须配置 PII_ENCRYPTION_KEY（32 字节 hex 或 base64）',
+      )
+    }
+    logWarn('config_warning', {
+      message: '未配置 PII_ENCRYPTION_KEY，使用开发默认密钥',
+    })
+  } else {
+    assertPiiKey()
+  }
 
   if (!secret) {
     if (isProduction) {

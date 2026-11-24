@@ -115,6 +115,11 @@ export const PERMISSION_MATRIX: PermissionModule[] = [
         label: '新增与编辑',
         roles: ['owner', 'regional_manager'],
       },
+      {
+        key: 'pii',
+        label: '查看供应商联系方式',
+        roles: ['owner', 'regional_manager', 'warehouse'],
+      },
     ],
   },
   {
@@ -167,6 +172,11 @@ export const PERMISSION_MATRIX: PermissionModule[] = [
         key: 'read',
         label: '查看会员',
         roles: ['owner', 'regional_manager', 'store_manager'],
+      },
+      {
+        key: 'pii',
+        label: '查看完整手机号',
+        roles: ['owner', 'regional_manager'],
       },
       {
         key: 'write',

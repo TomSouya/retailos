@@ -22,6 +22,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_HOST: '%'
           MYSQL_DATABASE: retailos
           MYSQL_USER: retailos
           MYSQL_PASSWORD: retailos_dev
@@ -39,6 +40,8 @@ jobs:
       DB_PASSWORD: retailos_dev
       DB_NAME: retailos
       DB_MIGRATIONS_RUN: 'true'
+      DB_ADMIN_USER: root
+      DB_ADMIN_PASSWORD: root
       JWT_SECRET: ci-jwt-secret
       LLM_PROVIDER: rule
     steps:
@@ -64,6 +67,9 @@ jobs:
 
       - name: Unit tests
         run: npm test --prefix server
+
+      - name: Migration rollback drill
+        run: npm run db:migration-drill --prefix server
 
       - name: Secret scan
         run: npm run check:secrets
@@ -93,6 +99,9 @@ jobs:
 
       - name: Smoke
         run: npm --prefix server run smoke
+
+      - name: Security check
+        run: npm run security:check
 
       - name: Upload server log
         if: failure()

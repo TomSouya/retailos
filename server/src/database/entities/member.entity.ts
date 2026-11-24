@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm'
+import { piiTransformer } from '../../common/pii'
 
 @Entity('members')
 export class MemberEntity {
@@ -8,7 +9,11 @@ export class MemberEntity {
   @Column({ type: 'varchar', length: 32 })
   name: string
 
-  @Column({ type: 'varchar', length: 32 })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    transformer: piiTransformer,
+  })
   phone: string
 
   @Column({ type: 'varchar', length: 16 })

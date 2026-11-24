@@ -21,7 +21,8 @@
     "e2e:concurrency": "node scripts/run-e2e-clean.mjs scripts/verify-concurrency.mjs",
     "verify:agent": "node scripts/verify-agent-contracts.mjs",
     "check:arch": "node scripts/check-architecture.mjs",
-    "check:secrets": "node scripts/check-secrets.mjs"
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "security:check": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

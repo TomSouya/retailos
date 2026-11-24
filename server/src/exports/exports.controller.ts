@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { InventoryService } from '../inventory/inventory.service'
 import { MembersService } from '../members/members.service'
 import { OrdersService } from '../orders/orders.service'
+import { toCsv } from './csv'
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
   paid: '已支付',
@@ -30,18 +31,6 @@ const RISK_LABELS: Record<string, string> = {
   low: '低',
   medium: '中',
   high: '高',
-}
-
-function csvCell(value: unknown) {
-  const text = value === null || value === undefined ? '' : String(value)
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
-}
-
-function toCsv(rows: unknown[][]) {
-  const body = rows
-    .map((row) => row.map((cell) => csvCell(cell)).join(','))
-    .join('\r\n')
-  return `\uFEFF${body}`
 }
 
 function pad(value: number) {

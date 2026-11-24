@@ -1,0 +1,21 @@
+[Unit]
+Description=RetailOS API server
+After=network.target
+
+[Service]
+Type=simple
+User=retailos
+Group=retailos
+WorkingDirectory=/opt/retailos/current
+EnvironmentFile=/opt/retailos/shared/.env
+ExecStart=/usr/bin/node server/dist/main.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/opt/retailos
+
+[Install]
+WantedBy=multi-user.target

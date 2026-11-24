@@ -15,7 +15,8 @@ import {
   PRODUCT_SEED,
   SUPPLIER_SEED,
 } from '../domain/phase2-data'
-import { ensurePermission } from '../domain/permissions'
+import { ensurePermission, hasPermission } from '../domain/permissions'
+import { maskName, maskPhone } from '../common/pii'
 import { Actor } from '../domain/types'
 
 function pad(value: number) {
@@ -261,9 +262,23 @@ export class CatalogService implements OnModuleInit {
     return toProductDto(saved)
   }
 
+  private supplierFor(actor: Actor, entity: SupplierEntity) {
+    const full = hasPermission(actor, 'products.pii')
+    return {
+      id: entity.id,
+      name: entity.name,
+      contact: full ? entity.contact : maskName(entity.contact),
+      phone: full ? entity.phone : maskPhone(entity.phone),
+      status: entity.status,
+    }
+  }
+
   async listSuppliers(actor: Actor) {
     ensurePermission(actor, 'products.read', '查看供应商')
-    return this.suppliersRepository.find({ order: { id: 'ASC' } })
+    const rows = await this.suppliersRepository.find({
+      order: { id: 'ASC' },
+    })
+    return rows.map((row) => this.supplierFor(actor, row))
   }
 
   async createSupplier(
@@ -303,7 +318,7 @@ export class CatalogService implements OnModuleInit {
       approvalId: '—',
     })
 
-    return saved
+    return this.supplierFor(actor, saved)
   }
 
   async updateSupplier(
@@ -350,7 +365,7 @@ export class CatalogService implements OnModuleInit {
       approvalId: '—',
     })
 
-    return saved
+    return this.supplierFor(actor, saved)
   }
 
   async createCategory(
