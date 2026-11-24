@@ -109,6 +109,7 @@ npm run dev       # 前端 http://127.0.0.1:5173，/api 代理到 3000
 | `npm run e2e:phase2` | 业务 e2e：商品、采购、库存、退款、分页搜索 |
 | `npm run e2e:phase3` | 深化 e2e：导出、系统账号、Agent 确认卡 |
 | `npm run e2e:concurrency` | 并发一致性：验收只入库一次、退款只成功一次 |
+| `npm run test:server` | 服务层单元测试（退款计算、分页归一、采购状态机） |
 | `npm run verify:agent` | A2UI / AG-UI 契约校验（8 项） |
 | `npm run check:arch` | 架构守卫：Agent 层禁止直连数据库 |
 | `npm run check:secrets` | 扫描已跟踪文件中的密钥与私钥 |
@@ -153,8 +154,27 @@ e2e 说明：
 
 访问日志为单行 JSON（含 requestId、traceId、耗时、状态码、慢请求标记），可直接由 Loki / CloudWatch / ELK 采集。限流与指标为单实例内存实现，多实例需替换为 Redis 或 Prometheus 客户端。
 
+### 监控与告警
+
+- 抓取配置示例：`deploy/prometheus.example.yml`；
+- 告警规则示例：`deploy/alerts.example.yml`（数据库不可用、5xx 比例、慢请求、5xx 突增）；
+- 探针：`/api/health/live`（存活）、`/api/health/ready`（就绪）；
+- 若设置 `METRICS_TOKEN`，在 Prometheus 中用 `authorization.credentials_file` 提供令牌。
+
+### 发布清单
+
+1. `npm run test:server`；
+2. `npm run check:secrets` 与依赖审计；
+3. `npm run db:reconcile` 确认无对账异常；
+4. `npm run db:backup` 留恢复点；
+5. 确认 CI 全绿后打 tag：`git tag vX.Y.Z && git push origin vX.Y.Z`；
+6. 部署后检查 `/api/health/ready` 与 `/api/metrics`。
+
+`master` 已启用分支保护，要求 `build-and-smoke` 与 `e2e` 两个检查通过。
+
 ## 质量门禁
 
+- 单元测试：退款计算、分页归一、采购状态机；
 - 契约：`verify:agent` 8/8；
 - 架构：`check:arch` 通过；
 - 安全：`check:secrets` 无命中，依赖审计无高危漏洞；

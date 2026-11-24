@@ -1,0 +1,17 @@
+# Prometheus 抓取配置示例
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  - job_name: retailos
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ['127.0.0.1:3000']
+    # 若服务端设置了 METRICS_TOKEN，取消下面注释并挂载令牌文件
+    # authorization:
+    #   type: Bearer
+    #   credentials_file: /etc/prometheus/retailos-token

@@ -1,0 +1,46 @@
+# RetailOS 告警规则示例，配合 prometheus.example.yml 使用
+groups:
+  - name: retailos
+    rules:
+      - alert: RetailOSDatabaseDown
+        expr: retailos_db_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: RetailOS 数据库不可用
+          description: /api/health/ready 持续失败，检查 MySQL 连接与磁盘。
+
+      - alert: RetailOSHigh5xxRate
+        expr: |
+          sum(rate(retailos_http_requests_total{status=~"5.."}[5m]))
+            /
+          clamp_min(sum(rate(retailos_http_requests_total[5m])), 0.001)
+          > 0.02
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 5xx 比例超过 2%
+          description: 查看 server 日志中的 requestId 与 traceId 定位。
+
+      - alert: RetailOSSlowRequests
+        expr: |
+          rate(retailos_http_request_duration_seconds_sum[5m])
+            /
+          clamp_min(rate(retailos_http_request_duration_seconds_count[5m]), 0.001)
+          > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 平均请求耗时超过 800ms
+          description: 检查慢查询、锁等待与外部模型调用。
+
+      - alert: RetailOS5xxBurst
+        expr: increase(retailos_http_requests_5xx_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: 5 分钟内新增超过 5 个 5xx

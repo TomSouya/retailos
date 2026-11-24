@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "server": "npm --prefix server run start",
     "server:smoke": "npm --prefix server run smoke",
+    "test:server": "npm --prefix server run test",
     "db:reset": "npm --prefix server run reset:demo -- --yes",
     "db:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1",
     "db:restore": "powershell -ExecutionPolicy Bypass -File scripts/restore-db.ps1",

@@ -62,6 +62,9 @@ jobs:
           npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
           npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org --prefix server
 
+      - name: Unit tests
+        run: npm test --prefix server
+
       - name: Secret scan
         run: npm run check:secrets
 
