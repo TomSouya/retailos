@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { DataSource, Repository } from 'typeorm'
 import { AuditService } from '../audit/audit.service'
 import { SalesOrderEntity } from '../database/entities/sales-order.entity'
 import { SalesOrderItemEntity } from '../database/entities/sales-order-item.entity'
@@ -64,6 +64,7 @@ export class OrdersService implements OnModuleInit {
     @InjectRepository(SalesOrderItemEntity)
     private readonly itemsRepository: Repository<SalesOrderItemEntity>,
     private readonly auditService: AuditService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
@@ -81,42 +82,94 @@ export class OrdersService implements OnModuleInit {
     }
   }
 
-  async list(
+  private scopedQuery(
     actor: Actor,
     query: { status?: string; search?: string; storeId?: string },
   ) {
     ensurePermission(actor, 'orders.read', '查看销售订单')
-    const allowed = new Set(
-      scopedStores(actor).map((store) => store.id),
+    const allowed = scopedStores(actor).map((store) => store.id)
+    if (!allowed.length) {
+      throw new ForbiddenException('当前角色没有可查看的门店')
+    }
+
+    const builder = this.ordersRepository
+      .createQueryBuilder('orders')
+      .where('orders.storeId IN (:...storeIds)', { storeIds: allowed })
+
+    if (query.storeId && query.storeId !== 'all') {
+      builder.andWhere('orders.storeId = :storeId', {
+        storeId: query.storeId,
+      })
+    }
+    if (query.status && query.status !== 'all') {
+      builder.andWhere('orders.status = :status', { status: query.status })
+    }
+
+    const keyword = String(query.search || '').trim()
+    if (keyword) {
+      builder.andWhere(
+        '(orders.id LIKE :keyword OR orders.memberName LIKE :keyword OR orders.storeName LIKE :keyword)',
+        { keyword: `%${keyword}%` },
+      )
+    }
+
+    return builder.orderBy('orders.createdAt', 'DESC')
+  }
+
+  async list(
+    actor: Actor,
+    query: { status?: string; search?: string; storeId?: string },
+  ) {
+    const rows = await this.scopedQuery(actor, query).getMany()
+    return rows.map(toDto)
+  }
+
+  async page(
+    actor: Actor,
+    query: {
+      status?: string
+      search?: string
+      storeId?: string
+      page?: number
+      pageSize?: number
+    },
+  ) {
+    const page = Math.max(1, Math.floor(Number(query.page) || 1))
+    const pageSize = Math.min(
+      50,
+      Math.max(1, Math.floor(Number(query.pageSize) || 10)),
     )
 
-    const rows = await this.ordersRepository.find({
-      relations: { items: true },
-      order: { createdAt: 'DESC' },
-    })
+    const [rows, total] = await this.scopedQuery(actor, query)
+      .skip((page - 1) * pageSize)
+      .take(pageSize)
+      .getManyAndCount()
 
-    const keyword = String(query.search || '').trim().toLowerCase()
-    return rows
-      .filter((row) => allowed.has(row.storeId))
-      .filter((row) =>
-        query.storeId && query.storeId !== 'all'
-          ? row.storeId === query.storeId
-          : true,
+    const raw = await this.scopedQuery(actor, query)
+      .select('COUNT(*)', 'total')
+      .addSelect(
+        "COALESCE(SUM(CASE WHEN orders.status = 'paid' THEN 1 ELSE 0 END), 0)",
+        'paid',
       )
-      .filter((row) =>
-        query.status && query.status !== 'all'
-          ? row.status === query.status
-          : true,
+      .addSelect(
+        "COALESCE(SUM(CASE WHEN orders.status IN ('refunded', 'partially_refunded') THEN 1 ELSE 0 END), 0)",
+        'refunded',
       )
-      .filter((row) => {
-        if (!keyword) return true
-        return (
-          row.id.toLowerCase().includes(keyword) ||
-          row.memberName.toLowerCase().includes(keyword) ||
-          row.storeName.toLowerCase().includes(keyword)
-        )
-      })
-      .map(toDto)
+      .addSelect('COALESCE(SUM(orders.amount), 0)', 'amount')
+      .getRawOne()
+
+    return {
+      orders: rows.map(toDto),
+      total,
+      page,
+      pageSize,
+      summary: {
+        total: Number(raw?.total || 0),
+        paid: Number(raw?.paid || 0),
+        refunded: Number(raw?.refunded || 0),
+        amount: Number(raw?.amount || 0),
+      },
+    }
   }
 
   async detail(actor: Actor, id: string) {
@@ -143,58 +196,71 @@ export class OrdersService implements OnModuleInit {
     body: { amount?: number; reason?: string; approvalId?: string },
   ) {
     ensurePermission(actor, 'orders.refund', '处理退款')
-    const entity = await this.ordersRepository.findOne({
-      where: { id },
+
+    // 事务内用行锁读取订单，避免并发退款各自通过可退金额校验
+    const refundResult = await this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(SalesOrderEntity)
+      const entity = await repository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      })
+      if (!entity) throw new NotFoundException('订单不存在')
+
+      const allowed = new Set(
+        scopedStores(actor).map((store) => store.id),
+      )
+      if (!allowed.has(entity.storeId)) {
+        throw new ForbiddenException('当前角色无权处理该订单')
+      }
+      if (!['paid', 'partially_refunded'].includes(entity.status)) {
+        throw new BadRequestException('只有已支付或部分退款的订单可以退款')
+      }
+
+      const total = Number(entity.amount)
+      const refunded = Number(entity.refundedAmount || 0)
+      const refundable = Math.round((total - refunded) * 100) / 100
+      const amount =
+        body.amount === undefined || body.amount === null
+          ? refundable
+          : Number(body.amount)
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new BadRequestException('退款金额不合法')
+      }
+      if (amount > refundable + 0.001) {
+        throw new BadRequestException(`退款金额不能超过可退金额 ¥${refundable}`)
+      }
+
+      const reason = String(body.reason || '').trim()
+      if (!reason) throw new BadRequestException('请填写退款原因')
+      if (reason.length > 200) {
+        throw new BadRequestException('退款原因不能超过 200 字')
+      }
+
+      entity.refundedAmount = Math.round((refunded + amount) * 100) / 100
+      entity.refundReason = reason
+      entity.status =
+        entity.refundedAmount >= total ? 'refunded' : 'partially_refunded'
+      const saved = await repository.save(entity)
+
+      return { id: saved.id, status: saved.status, amount }
+    })
+
+    const detail = await this.ordersRepository.findOne({
+      where: { id: refundResult.id },
       relations: { items: true },
     })
-    if (!entity) throw new NotFoundException('订单不存在')
-
-    const allowed = new Set(
-      scopedStores(actor).map((store) => store.id),
-    )
-    if (!allowed.has(entity.storeId)) {
-      throw new ForbiddenException('当前角色无权处理该订单')
-    }
-    if (!['paid', 'partially_refunded'].includes(entity.status)) {
-      throw new BadRequestException('只有已支付或部分退款的订单可以退款')
-    }
-
-    const total = Number(entity.amount)
-    const refunded = Number(entity.refundedAmount || 0)
-    const refundable = Math.round((total - refunded) * 100) / 100
-    const amount =
-      body.amount === undefined || body.amount === null
-        ? refundable
-        : Number(body.amount)
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('退款金额不合法')
-    }
-    if (amount > refundable + 0.001) {
-      throw new BadRequestException(`退款金额不能超过可退金额 ¥${refundable}`)
-    }
-
-    const reason = String(body.reason || '').trim()
-    if (!reason) throw new BadRequestException('请填写退款原因')
-    if (reason.length > 200) {
-      throw new BadRequestException('退款原因不能超过 200 字')
-    }
-
-    entity.refundedAmount = Math.round((refunded + amount) * 100) / 100
-    entity.refundReason = reason
-    entity.status =
-      entity.refundedAmount >= total ? 'refunded' : 'partially_refunded'
-    const saved = await this.ordersRepository.save(entity)
+    if (!detail) throw new NotFoundException('订单不存在')
 
     await this.auditService.record({
       actor: actor.name,
       role: actor.label,
       action: '订单退款',
-      object: saved.id,
-      result: `${saved.status} ¥${amount.toFixed(2)}`,
+      object: refundResult.id,
+      result: `${refundResult.status} ¥${refundResult.amount.toFixed(2)}`,
       approvalId: body.approvalId || '—',
     })
 
-    return toDto(saved)
+    return toDto(detail)
   }
 }

@@ -1,10 +1,9 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus/es/components/message/index'
 import { Download, Search } from '@element-plus/icons-vue'
 import { downloadCsv } from '@/api/client'
 import TablePagination from '@/components/TablePagination.vue'
-import { usePagination } from '@/composables/usePagination'
 import { useOrdersStore } from '@/stores/orders'
 import { useAuthStore } from '@/stores/auth'
 import { stores } from '@/mocks/data'
@@ -35,6 +34,7 @@ const storeOptions = computed(() => {
 })
 
 const filteredOrders = computed(() => {
+  if (orders.remote) return orders.orders
   const keyword = search.value.trim().toLowerCase()
   return orders.orders.filter((item) => {
     if (statusFilter.value !== 'all' && item.status !== statusFilter.value) {
@@ -52,20 +52,54 @@ const filteredOrders = computed(() => {
   })
 })
 
-const {
-  page,
-  pageSize,
-  paged: visibleOrders,
-} = usePagination(filteredOrders, {
-  resetOn: [search, statusFilter, storeFilter],
+const page = ref(1)
+const pageSize = ref(10)
+
+// 远端模式由服务端分页，演示模式在前端切片
+const visibleOrders = computed(() => {
+  if (orders.remote) return orders.orders
+  const start = (page.value - 1) * pageSize.value
+  return filteredOrders.value.slice(start, start + pageSize.value)
 })
 
-onMounted(async () => {
-  try {
-    await orders.refresh()
-  } catch (error) {
-    ElMessage.error(`订单数据加载失败：${error.message}`)
+const totalCount = computed(() =>
+  orders.remote ? orders.total : filteredOrders.value.length,
+)
+
+let searchTimer = null
+
+function loadOrders() {
+  orders
+    .refresh({
+      page: page.value,
+      pageSize: pageSize.value,
+      status: statusFilter.value,
+      storeId: storeFilter.value,
+      search: search.value.trim(),
+    })
+    .catch((error) => {
+      ElMessage.error(`订单数据加载失败：${error.message}`)
+    })
+}
+
+function resetAndLoad() {
+  if (page.value !== 1) {
+    page.value = 1
+    return
   }
+  loadOrders()
+}
+
+watch([page, pageSize], loadOrders)
+watch([statusFilter, storeFilter], resetAndLoad)
+watch(search, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(resetAndLoad, 300)
+})
+
+onMounted(loadOrders)
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
 function exportOrders() {
@@ -273,7 +307,7 @@ async function submitRefund() {
       <TablePagination
         v-model:page="page"
         v-model:page-size="pageSize"
-        :total="filteredOrders.length"
+        :total="totalCount"
       />
     </section>
 

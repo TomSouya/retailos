@@ -26,14 +26,16 @@ export class OrdersController {
     @Query('status') status?: string,
     @Query('search') search?: string,
     @Query('storeId') storeId?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return {
-      orders: await this.ordersService.list(request.actor, {
-        status,
-        search,
-        storeId,
-      }),
-    }
+    return this.ordersService.page(request.actor, {
+      status,
+      search,
+      storeId,
+      page: Number(page),
+      pageSize: Number(pageSize),
+    })
   }
 
   @Get(':id')

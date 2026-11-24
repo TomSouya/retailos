@@ -287,6 +287,7 @@ export class InventoryService implements OnModuleInit {
 
       const item = await inventoryRepository.findOne({
         where: { storeId, sku },
+        lock: { mode: 'pessimistic_write' },
       })
       if (!item) {
         throw new NotFoundException('该门店没有此 SKU 的库存记录')
@@ -348,13 +349,16 @@ export class InventoryService implements OnModuleInit {
     const movementRepository = manager.getRepository(StockMovementEntity)
     const productRepository = manager.getRepository(ProductEntity)
 
-    for (const item of order.items || []) {
+    for (const item of [...(order.items || [])].sort((a, b) =>
+      a.sku.localeCompare(b.sku),
+    )) {
       const product = await productRepository.findOne({
         where: { id: item.sku },
       })
 
       const existing = await inventoryRepository.findOne({
         where: { storeId: order.storeId, sku: item.sku },
+        lock: { mode: 'pessimistic_write' },
       })
 
       const beforeStock = existing?.stock || 0

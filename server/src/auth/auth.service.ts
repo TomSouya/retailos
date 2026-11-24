@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   OnModuleInit,
   UnauthorizedException,
@@ -144,8 +143,9 @@ export class AuthService implements OnModuleInit {
     })
     if (!user) throw new UnauthorizedException('用户名或密码错误')
 
+    // 停用、锁定与密码错误对外使用同一提示，避免账号枚举；状态仅记录在服务端
     if (user.status === 'disabled') {
-      throw new ForbiddenException('账号已被停用，请联系企业管理员')
+      throw new UnauthorizedException('用户名或密码错误')
     }
 
     const now = Date.now()
@@ -153,13 +153,7 @@ export class AuthService implements OnModuleInit {
       ? new Date(user.lockedUntil).getTime()
       : 0
     if (lockedUntil > now) {
-      const minutes = Math.max(
-        1,
-        Math.ceil((lockedUntil - now) / 60000),
-      )
-      throw new ForbiddenException(
-        `登录失败次数过多，账号已锁定，请 ${minutes} 分钟后重试`,
-      )
+      throw new UnauthorizedException('用户名或密码错误')
     }
     if (lockedUntil && lockedUntil <= now) {
       user.failedLoginAttempts = 0
@@ -175,15 +169,11 @@ export class AuthService implements OnModuleInit {
           Date.now() + LOCK_MINUTES * 60000,
         )
         await this.usersRepository.save(user)
-        throw new ForbiddenException(
-          `登录失败次数过多，账号已锁定 ${LOCK_MINUTES} 分钟`,
-        )
+        throw new UnauthorizedException('用户名或密码错误')
       }
       user.failedLoginAttempts = attempts
       await this.usersRepository.save(user)
-      throw new UnauthorizedException(
-        `用户名或密码错误，还可尝试 ${MAX_LOGIN_ATTEMPTS - attempts} 次`,
-      )
+      throw new UnauthorizedException('用户名或密码错误')
     }
 
     user.lastLoginAt = new Date()

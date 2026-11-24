@@ -26,6 +26,10 @@ function authHeaders(extra = {}) {
 async function parseResponse(response) {
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
+    // 已登录请求返回 401 时统一通知应用清理会话并跳转登录
+    if (response.status === 401 && authToken) {
+      window.dispatchEvent(new CustomEvent('retailos:unauthorized'))
+    }
     throw new Error(body.message || `请求失败：${response.status}`)
   }
   return body
@@ -224,8 +228,7 @@ export async function fetchSalesOrders(params = {}) {
     `${API_BASE_URL}/api/orders${queryString(params)}`,
     { headers: authHeaders() },
   )
-  const body = await parseResponse(response)
-  return body.orders || []
+  return parseResponse(response)
 }
 
 export async function fetchSalesOrder(id) {

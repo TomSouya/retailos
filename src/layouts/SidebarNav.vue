@@ -181,7 +181,7 @@ const visibleGroups = computed(() =>
   padding: 0 10px 6px;
   color: rgba(245, 247, 250, 0.46);
   font-family: var(--sans);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -262,20 +262,20 @@ const visibleGroups = computed(() =>
 
 .sidebar-note strong {
   color: rgba(245, 247, 250, 0.78);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
 .sidebar-note span {
   color: rgba(245, 247, 250, 0.46);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .sidebar-scope {
   margin-top: 10px;
   overflow: hidden;
   color: rgba(245, 247, 250, 0.4);
-  font-size: 9.5px;
+  font-size: 10.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

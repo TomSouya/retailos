@@ -438,26 +438,38 @@ export class ProcurementService implements OnModuleInit {
       entity.approvedAt = new Date()
     } else if (action === 'receive') {
       ensurePermission(actor, 'procurement.receive', '采购到货验收')
-      if (entity.status !== 'approved') {
-        throw new BadRequestException('只有已通过采购单可以验收')
-      }
-      entity.status = 'received'
-      entity.receivedAt = new Date()
     } else {
       throw new BadRequestException('未知操作')
     }
 
     let saved: PurchaseOrderEntity
     if (action === 'receive') {
+      // 事务内锁定采购单并复检状态，保证并发验收只入库一次
       saved = await this.dataSource.transaction(async (manager) => {
         const repository = manager.getRepository(PurchaseOrderEntity)
-        const received = await repository.save(entity)
+        const locked = await repository.findOne({
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        })
+        if (!locked) throw new NotFoundException('采购单不存在')
+        if (locked.status !== 'approved') {
+          throw new BadRequestException('只有已通过采购单可以验收')
+        }
+
+        const items = await manager
+          .getRepository(PurchaseOrderItemEntity)
+          .find({ where: { purchaseOrder: { id } } })
+
+        locked.status = 'received'
+        locked.receivedAt = new Date()
+        const received = await repository.save(locked)
+
         await this.inventoryService.applyPurchaseReceipt(
           manager,
-          received,
+          { ...received, items },
           actor,
         )
-        return received
+        return { ...received, items }
       })
     } else {
       saved = await this.ordersRepository.save(entity)

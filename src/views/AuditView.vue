@@ -188,7 +188,7 @@ function exportData() {
 
 .audit-summary span {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
@@ -207,7 +207,7 @@ function exportData() {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .audit-note .dot {

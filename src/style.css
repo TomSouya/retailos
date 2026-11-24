@@ -258,7 +258,7 @@ ol {
 
 .stat span {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
@@ -274,7 +274,7 @@ ol {
 
 .stat small {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 11.5px;
 }
 
 .stat.is-warning strong {
@@ -339,7 +339,7 @@ ol {
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
@@ -527,7 +527,7 @@ ol {
   padding: 10px 0;
   background: var(--surface-2);
   font-family: var(--sans);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -973,7 +973,7 @@ ol {
 .md-body table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .md-body th,

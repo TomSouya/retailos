@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { STORES } from '../domain/data'
 import { hasPermission } from '../domain/permissions'
 import { executeTool, resolveTargetStore } from '../domain/rbac'
-import { currentTraceId } from '../common/request-context'
+import { currentTraceId, safeTraceId } from '../common/request-context'
 import {
   pickScenario,
   targetStoreFor,
@@ -679,10 +679,11 @@ export class AgentService {
     })
 
     const runId = uid('run')
+    // 客户端 traceId 只接受安全格式，否则回退到服务端链路 ID
     const traceId =
-      String(
-        body?.state?.traceId || body?.traceId || currentTraceId() || '',
-      ).trim() || uid('trace')
+      safeTraceId(body?.state?.traceId || body?.traceId) ||
+      currentTraceId() ||
+      uid('trace')
     const threadId =
       String(body?.state?.threadId || '').trim() || uid('thread')
     const sharedContext = body?.state?.context || body?.context || {}

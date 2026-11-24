@@ -20,9 +20,12 @@ export const useOrdersStore = defineStore('orders', () => {
   const loading = ref(false)
   const error = ref('')
   const remote = isRemote
+  const total = ref(isRemote ? 0 : orderSeed.length)
+  const remoteSummary = ref(null)
 
   const summary = computed(() => {
-    const total = orders.value.length
+    if (remoteSummary.value) return remoteSummary.value
+    const totalCount = orders.value.length
     const paid = orders.value.filter(
       (item) => item.status === 'paid',
     ).length
@@ -33,15 +36,21 @@ export const useOrdersStore = defineStore('orders', () => {
       (sum, item) => sum + Number(item.amount || 0),
       0,
     )
-    return { total, paid, refunded, amount }
+    return { total: totalCount, paid, refunded, amount }
   })
 
   async function refresh(query = {}) {
-    if (!isRemote) return orders.value
+    if (!isRemote) {
+      total.value = orders.value.length
+      return orders.value
+    }
     loading.value = true
     error.value = ''
     try {
-      orders.value = await fetchSalesOrders(query)
+      const result = await fetchSalesOrders(query)
+      orders.value = result.orders || []
+      total.value = Number(result.total || 0)
+      remoteSummary.value = result.summary || null
       return orders.value
     } catch (nextError) {
       error.value = nextError.message
@@ -98,6 +107,7 @@ export const useOrdersStore = defineStore('orders', () => {
     orders,
     detail,
     summary,
+    total,
     loading,
     error,
     remote,

@@ -253,7 +253,7 @@ function openAgent() {
 }
 
 .role-copy strong {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 650;
   line-height: 1.25;
 }
@@ -262,7 +262,7 @@ function openAgent() {
   max-width: 132px;
   overflow: hidden;
   color: var(--faint);
-  font-size: 9px;
+  font-size: 10.5px;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -506,7 +506,7 @@ function askAgent(text) {
 
 .insight-copy strong {
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -520,7 +520,7 @@ function askAgent(text) {
 .insight-btn {
   flex: none;
   color: var(--accent);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -560,13 +560,13 @@ function askAgent(text) {
 
 .metric-label {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 
 .metric-delta {
   font-family: var(--display);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -612,7 +612,7 @@ function askAgent(text) {
 
 .metric-hint {
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.4;
 }
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { NextFunction, Request, Response } from 'express'
-import { runWithRequestContext } from './request-context'
+import { runWithRequestContext, safeTraceId } from './request-context'
 
 const SLOW_REQUEST_MS = 800
 const HEALTH_PATHS = new Set(['/api/health'])
@@ -21,7 +21,8 @@ export function requestLogger(
   next: NextFunction,
 ) {
   const requestId = pickHeader(req, 'x-request-id') || randomUUID()
-  const traceId = pickHeader(req, 'x-trace-id') || requestId
+  const traceId =
+    safeTraceId(pickHeader(req, 'x-trace-id')) || requestId
   res.setHeader('X-Request-Id', requestId)
   res.setHeader('X-Trace-Id', traceId)
   ;(req as any).requestId = requestId
