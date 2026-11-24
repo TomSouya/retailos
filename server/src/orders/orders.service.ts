@@ -8,6 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'
 import { AuditService } from '../audit/audit.service'
+import { normalizePagination } from './pagination'
+import { computeRefund } from './refund'
 import { SalesOrderEntity } from '../database/entities/sales-order.entity'
 import { SalesOrderItemEntity } from '../database/entities/sales-order-item.entity'
 import { SALES_ORDER_SEED } from '../domain/phase2-data'
@@ -134,14 +136,13 @@ export class OrdersService implements OnModuleInit {
       pageSize?: number
     },
   ) {
-    const page = Math.max(1, Math.floor(Number(query.page) || 1))
-    const pageSize = Math.min(
-      50,
-      Math.max(1, Math.floor(Number(query.pageSize) || 10)),
+    const { page, pageSize, skip } = normalizePagination(
+      query.page,
+      query.pageSize,
     )
 
     const [rows, total] = await this.scopedQuery(actor, query)
-      .skip((page - 1) * pageSize)
+      .skip(skip)
       .take(pageSize)
       .getManyAndCount()
 
@@ -216,20 +217,11 @@ export class OrdersService implements OnModuleInit {
         throw new BadRequestException('只有已支付或部分退款的订单可以退款')
       }
 
-      const total = Number(entity.amount)
-      const refunded = Number(entity.refundedAmount || 0)
-      const refundable = Math.round((total - refunded) * 100) / 100
-      const amount =
-        body.amount === undefined || body.amount === null
-          ? refundable
-          : Number(body.amount)
-
-      if (!Number.isFinite(amount) || amount <= 0) {
-        throw new BadRequestException('退款金额不合法')
-      }
-      if (amount > refundable + 0.001) {
-        throw new BadRequestException(`退款金额不能超过可退金额 ¥${refundable}`)
-      }
+      const refund = computeRefund(
+        entity.amount,
+        entity.refundedAmount,
+        body.amount,
+      )
 
       const reason = String(body.reason || '').trim()
       if (!reason) throw new BadRequestException('请填写退款原因')
@@ -237,13 +229,12 @@ export class OrdersService implements OnModuleInit {
         throw new BadRequestException('退款原因不能超过 200 字')
       }
 
-      entity.refundedAmount = Math.round((refunded + amount) * 100) / 100
+      entity.refundedAmount = refund.nextRefunded
       entity.refundReason = reason
-      entity.status =
-        entity.refundedAmount >= total ? 'refunded' : 'partially_refunded'
+      entity.status = refund.nextStatus
       const saved = await repository.save(entity)
 
-      return { id: saved.id, status: saved.status, amount }
+      return { id: saved.id, status: saved.status, amount: refund.amount }
     })
 
     const detail = await this.ordersRepository.findOne({

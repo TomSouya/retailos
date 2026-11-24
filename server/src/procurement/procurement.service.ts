@@ -20,6 +20,7 @@ import {
   scopeTypeOf,
 } from '../domain/permissions'
 import { Actor } from '../domain/types'
+import { nextPurchaseStatus } from './transitions'
 
 function pad(value: number) {
   return String(value).padStart(2, '0')
@@ -424,20 +425,15 @@ export class ProcurementService implements OnModuleInit {
 
     if (action === 'submit') {
       ensurePermission(actor, 'procurement.create', '提交采购单')
-      if (entity.status !== 'draft') {
-        throw new BadRequestException('只有草稿采购单可以提交')
-      }
-      entity.status = 'pending'
+      entity.status = nextPurchaseStatus(entity.status, 'submit')
     } else if (action === 'approve') {
       ensurePermission(actor, 'procurement.approve', '审批采购单')
-      if (entity.status !== 'pending') {
-        throw new BadRequestException('只有待审批采购单可以审批')
-      }
-      entity.status = 'approved'
+      entity.status = nextPurchaseStatus(entity.status, 'approve')
       entity.approvedBy = actor.name
       entity.approvedAt = new Date()
     } else if (action === 'receive') {
       ensurePermission(actor, 'procurement.receive', '采购到货验收')
+      nextPurchaseStatus(entity.status, 'receive')
     } else {
       throw new BadRequestException('未知操作')
     }
@@ -452,9 +448,7 @@ export class ProcurementService implements OnModuleInit {
           lock: { mode: 'pessimistic_write' },
         })
         if (!locked) throw new NotFoundException('采购单不存在')
-        if (locked.status !== 'approved') {
-          throw new BadRequestException('只有已通过采购单可以验收')
-        }
+        nextPurchaseStatus(locked.status, 'receive')
 
         const items = await manager
           .getRepository(PurchaseOrderItemEntity)
