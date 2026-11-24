@@ -14,7 +14,8 @@
     "e2e:phase2": "node scripts/run-e2e-clean.mjs scripts/verify-phase2.mjs",
     "e2e:phase3": "node scripts/run-e2e-clean.mjs scripts/verify-phase3.mjs",
     "verify:agent": "node scripts/verify-agent-contracts.mjs",
-    "check:arch": "node scripts/check-architecture.mjs"
+    "check:arch": "node scripts/check-architecture.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
